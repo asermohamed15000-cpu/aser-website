@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Intro — Get ready</title>
+<style>
+  :root{
+    /* ⇐ عدّل السطرين دول بسهولة */
+    --drive-duration: 3.6s; /* مدة الانترُو (ثواني) — قلل للسرعة، زود للبُطء */
+    --car-color: #e63946;   /* لون السيارة (hex) */
+  }
+
+  html,body{
+    height:100%;
+    margin:0;
+    background:#0b0b0f;
+    font-family:Inter, Arial, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    -moz-osx-font-smoothing:grayscale;
+    overflow:hidden;
+  }
+
+  /* ---------- واجهة START / SKIP ---------- */
+  .ui {
+    position:fixed;
+    inset:18px 18px auto auto;
+    z-index:99999;
+    display:flex;
+    gap:10px;
+  }
+  .btn {
+    background:linear-gradient(180deg,#fff 0%,#e6e6e6 100%);
+    border-radius:10px;
+    padding:10px 14px;
+    font-weight:700;
+    cursor:pointer;
+    box-shadow:0 6px 18px rgba(0,0,0,0.35);
+    border:none;
+  }
+  .btn.alt { background:transparent; color:#fff; border:1px solid rgba(255,255,255,0.12); box-shadow:none; }
+
+  /* ---------- شاشة الانترُو ---------- */
+  #intro {
+    position:fixed;
+    inset:0;
+    background: linear-gradient(180deg,#07070a 0%, #141417 70%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:9999;
+    transition:opacity .6s ease;
+    pointer-events:auto;
+  }
+
+  .scene {
+    width:92vw;
+    max-width:1100px;
+    height:62vh;
+    min-height:320px;
+    position:relative;
+    perspective:1400px; /* مهم للـ "depth" */
+  }
+
+  /* الطريق */
+  .road {
+    position:absolute;
+    left:0; right:0; bottom:10%;
+    height:16%;
+    background: linear-gradient(90deg,#171717 0%, #222 45%, #171717 100%);
+    border-radius:14px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.7) inset;
+  }
+  .road::after{
+    content:"";
+    position:absolute;
+    left:50%;
+    transform:translateX(-50%);
+    top:46%;
+    width:68%;
+    height:6px;
+    background:linear-gradient(90deg,transparent 0, rgba(255,255,255,0.12) 20%, transparent 100%);
+    border-radius:6px;
+    opacity:0.12;
+  }
+
+  /* النص الكبير */
+  .intro-text {
+    position:absolute;
+    top:8%;
+    width:100%;
+    text-align:center;
+    color:#fff;
+    font-weight:800;
+    font-size:clamp(18px,3vw,34px);
+    letter-spacing:1px;
+    text-shadow:0 8px 30px rgba(0,0,0,0.6);
+    z-index:3;
+    pointer-events:none;
+  }
+
+  /* حاوية العربية — هنا نتحكّم بالـ perspective وحجمها */
+  .car-wrap {
+    position:absolute;
+    bottom:22%;
+    left:-60%;
+    width:360px;              /* حجم افتراضي */
+    transform-origin:center center;
+    transform-style:preserve-3d;
+    filter: drop-shadow(0 26px 34px rgba(0,0,0,0.6));
+    /* افتراضي: الحركة موقوفة (play via .playing on #intro) */
+    animation-play-state:paused;
+  }
+
+  /* الانيميشن — لما #intro يحصل فيه class "playing" الحركة تشتغل */
+  #intro.playing .car-wrap {
+    animation: approach var(--drive-duration) cubic-bezier(.18,.98,.32,1) forwards;
+    animation-play-state:running;
+  }
+
+  @keyframes approach {
+    /* نبدأ من بعيد وصغير، نكبر ونقرب جداً كأن العربية جاية فوق الكاميرا */
+    0%{
+      left:-60%;
+      transform: translateZ(-600px) translateX(0) scale(.35) rotateX(6deg) rotate(-6deg);
+      opacity:1;
+      filter: blur(.8px) drop-shadow(0 18px 24px rgba(0,0,0,0.55));
+    }
+    35%{
+      left:22%;
+      transform: translateZ(-180px) translateX(0) scale(.95) rotateX(2deg) rotate(3deg);
+      filter: blur(.3px) drop-shadow(0 20px 26px rgba(0,0,0,0.55));
+    }
+    65%{
+      left:62%;
+      transform: translateZ(-40px) translateX(0) scale(1.55) rotateX(0deg) rotate(0deg);
+      filter: blur(.1px) drop-shadow(0 26px 34px rgba(0,0,0,0.6));
+    }
+    100%{
+      left:120%;
+      transform: translateZ(40px) translateX(0) scale(2.6) rotateX(-2deg) rotate(2deg);
+      opacity:0.98;
+      filter: blur(.2px) drop-shadow(0 36px 48px rgba(0,0,0,0.7));
+    }
+  }
+
+  /* تأثير الإضاءة على العربية أثناء الاقتراب */
+  .car-wrap .shine {
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    background:linear-gradient(120deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01) 30%, rgba(255,255,255,0) 60%);
+    mix-blend-mode:screen;
+    opacity:.9;
+    border-radius:14px;
+  }
+
+  /* دخان بسيط */
+  .smoke {
+    position:absolute;
+    width:12px;
+    height:12px;
+    right:26px;
+    bottom:36%;
+    border-radius:50%;
+    background: rgba(200,200,200,0.95);
+    opacity:0;
+    transform: translateY(0) scale(.6);
+    animation: puff calc(var(--drive-duration) / 1.8) ease-out infinite;
+  }
+  .smoke.s2 { right:48px; bottom:38%; animation-delay:.12s; animation-duration:calc(var(--drive-duration) / 1.6); }
+  .smoke.s3 { right:72px; bottom:40%; animation-delay:.28s; animation-duration:calc(var(--drive-duration) / 1.4); }
+
+  @keyframes puff {
+    0% { opacity:0; transform:translateY(0) scale(.4); }
+    20%{ opacity:.7; transform:translateY(-16px) scale(.9); }
+    60%{ opacity:.35; transform:translateY(-36px) scale(1.35); }
+    100%{ opacity:0; transform:translateY(-70px) scale(1.9); }
+  }
+
+  /* محتوى الموقع اللي هيظهر بعد الانترُو */
+  #main-content {
+    opacity:0;
+    transition:opacity .6s ease .12s;
+    padding:60px 20px;
+    min-height:100vh;
+    text-align:center;
+    color:#111;
+    background: linear-gradient(180deg,#f6f6f9 0%, #fff 100%);
+  }
+  .cards {
+    display:flex;
+    gap:18px;
+    justify-content:center;
+    flex-wrap:wrap;
+    margin-top:28px;
+  }
+  .card {
+    background:#fff;
+    border-radius:12px;
+    padding:18px;
+    width:260px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.06);
+  }
+
+  /* لو المستخدم طلب Reduced Motion — نوقف الانيميشن */
+  @media (prefers-reduced-motion: reduce) {
+    #intro.playing .car-wrap { animation:none; transform:translateZ(-180px) scale(1); left:40%; }
+    .smoke { display:none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- واجهة START / SKIP -->
+<div class="ui" aria-hidden="false">
+  <button class="btn" id="startBtn">Start</button>
+  <button class="btn alt" id="skipBtn">Skip</button>
+</div>
+
+<!-- شاشة الانترُو -->
+<div id="intro" role="region" aria-label="Intro">
+  <div class="scene" role="img" aria-label="Car approaching scene">
+    <div class="intro-text">Get ready 🚗💨</div>
+    <div class="road" aria-hidden="true"></div>
+
+    <!-- حاوية العربية (SVG مفصّل شويّة لتشبه بورش أكثر) -->
+    <div class="car-wrap" id="carWrap" aria-hidden="true">
+      <div class="smoke"></div>
+      <div class="smoke s2"></div>
+      <div class="smoke s3"></div>
+
+      <div class="shine" aria-hidden="true"></div>
+
+      <!-- SVG: تصميم مبسّط لكن فيه خطوط أقرب لبورش -->
+      <svg viewBox="0 0 900 480" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+          <linearGradient id="g1" x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stop-color="#ffffff" stop-opacity="0.18"/>
+            <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.06"/>
+            <stop offset="1" stop-color="#ffffff" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+
+        <!-- shadow under car -->
+        <ellipse cx="450" cy="380" rx="180" ry="38" fill="#000" opacity="0.28"/>
+
+        <!-- car body (shape more Porsche-like: lower front, smooth roofline) -->
+        <g transform="translate(60,30) scale(.9)">
+          <!-- ground/base -->
+          <path d="M40 300 L820 300 L820 320 L40 320 Z" fill="#0b0b0b"/>
+          <!-- main body -->
+          <path d="M60 300 C80 220 140 180 260 170 L540 150 C650 150 730 190 780 260 L760 300 Z"
+                fill="var(--car-color)" stroke="#000" stroke-opacity="0.05" stroke-width="2"/>
+          <!-- hood and sharper front (Porsche-ish) -->
+          <path d="M120 220 C160 200 220 185 280 182 L340 178" fill="none" stroke="#000" stroke-opacity=".06"/>
+          <!-- roof/window -->
+          <path d="M320 168 L420 150 L520 150 L600 170 L520 200 L380 205 Z" fill="#bfe9ff" opacity="0.95"/>
+          <!-- lights front -->
+          <ellipse cx="700" cy="230" rx="22" ry="10" fill="#fff" opacity="0.12"/>
+          <!-- wheels -->
+          <g transform="translate(240,308)">
+            <circle cx="0" cy="0" r="36" fill="#111"/>
+            <circle cx="0" cy="0" r="16" fill="#666"/>
+            <path d="M-6 -8 L6 8 M-6 8 L6 -8" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+          </g>
+          <g transform="translate(600,308)">
+            <circle cx="0" cy="0" r="36" fill="#111"/>
+            <circle cx="0" cy="0" r="16" fill="#666"/>
+            <path d="M-6 -8 L6 8 M-6 8 L6 -8" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+          </g>
+
+          <!-- subtle highlight -->
+          <path d="M700 210 C680 196 640 186 540 190" stroke="url(#g1)" stroke-width="18" stroke-linecap="round" opacity="0.9"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+</div>
+
+<!-- المحتوى -->
+<div id="main-content" role="main">
+  <h1 style="margin:0; padding-top:40px;">أهلا بك — الموقع جاهز!</h1>
+  <p style="max-width:700px; margin:12px auto 0;">المحتوى سيظهر بعد الانترُو. تقدر تعدل النص واللون والسرعة في أعلى الملف.</p>
+
+  <div class="cards">
+    <div class="card"><h3>ميزة 1</h3><p>تفاصيل جميلة هنا.</p></div>
+    <div class="card"><h3>ميزة 2</h3><p>تفاصيل جميلة هنا.</p></div>
+    <div class="card"><h3>ميزة 3</h3><p>تفاصيل جميلة هنا.</p></div>
+  </div>
+</div>
+
+<script>
+/* ========= Web Audio Engine (محاكاة محرك أقرب للواقع) =========
+   الفكرة: نركّب صوت المحرك من:
+   - Oscillator أساسي (تغيّر التردد تدريجيًا سيمول "الرفع")
+   - Low-frequency noise + filter لعمل الرامبل (bass)
+   - LFO لتقلب الصوت شوية (حركة السلندر)
+   التشغيل يبدأ بعد تفاعل المستخدم (Start).
+*/
+
+function createEngineSound(durationSec){
+  const Ctx = window.AudioContext || window.webkitAudioContext;
+  const ctx = new Ctx();
+
+  // مرشّح وقناة إخراج
+  const master = ctx.createGain(); master.gain.value = 0.08;
+  master.connect(ctx.destination);
+
+  // oscillator أساسي (timbre)
+  const osc = ctx.createOscillator();
+  // نستخدم موجة sawtooth مَعدّلة لاقتراب الصوت من المحرك
+  osc.type = 'sawtooth';
+  // يبدأ منخفض ثم يرتفع
+  const now = ctx.currentTime;
+  osc.frequency.setValueAtTime(70, now);
+  osc.frequency.exponentialRampToValueAtTime(220, now + durationSec * 0.85);
+
+  // LFO يضيف تذبذب بسيط على التردد (محاكاة اهتزاز المحرك)
+  const lfo = ctx.createOscillator();
+  lfo.type = 'sine';
+  lfo.frequency.value = 5.5; // تردد الاهتزاز
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 6; // مدى التعديل بالهرتز
+  lfo.connect(lfoGain);
+  lfoGain.connect(osc.frequency);
+
+  // مرشح بسيط لنعومة الصوت
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(2600, now);
+
+  // rumble (مكونات باس) — noise عبر مرشح منخفض التردد
+  const bufferSize = 2 * ctx.sampleRate;
+  const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+  const output = noiseBuffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) output[i] = (Math.random() * 2 - 1) * 0.7;
+  const whiteNoise = ctx.createBufferSource();
+  whiteNoise.buffer = noiseBuffer;
+  whiteNoise.loop = true;
+  const noiseFilter = ctx.createBiquadFilter();
+  noiseFilter.type = 'lowpass';
+  noiseFilter.frequency.setValueAtTime(200, now);
+  const noiseGain = ctx.createGain(); noiseGain.gain.value = 0.08;
+
+  // اتصال الإشارات
+  osc.connect(filter);
+  filter.connect(master);
+
+  whiteNoise.connect(noiseFilter);
+  noiseFilter.connect(noiseGain);
+  noiseGain.connect(master);
+
+  // ظروف تشغيل/وقف تدريجي
+  osc.start(now);
+  lfo.start(now);
+  whiteNoise.start(now);
+
+  // خفض تدريجي في آخر نصف ثانية
+  master.gain.setValueAtTime(0.08, now);
+  master.gain.linearRampToValueAtTime(0.0, now + durationSec + 0.25);
+
+  // ضبط إيقاف الموارد بعد المدة
+  setTimeout(()=> {
+    try {
+      osc.stop();
+      lfo.stop();
+      whiteNoise.stop();
+      // close context إن أمكن لتحرير الذاكرة (بعض المتصفحات قد تمنع)
+      if (ctx.close) ctx.close();
+    } catch(e){}
+  }, (durationSec + 0.4) * 1000);
+}
+
+/* ======= تحكّم الانترُو ======= */
+(function(){
+  const intro = document.getElementById('intro');
+  const main = document.getElementById('main-content');
+  const startBtn = document.getElementById('startBtn');
+  const skipBtn = document.getElementById('skipBtn');
+
+  // قراءة مدة من CSS variable
+  const rootStyle = getComputedStyle(document.documentElement);
+  const durStr = rootStyle.getPropertyValue('--drive-duration').trim() || '3.6s';
+  const secs = durStr.endsWith('ms') ? parseFloat(durStr)/1000 : parseFloat(durStr);
+
+  let started = false;
+
+  function beginIntro(){
+    if (started) return;
+    started = true;
+
+    // add class to start CSS animation
+    intro.classList.add('playing');
+
+    // تشغيل الصوت المحاكي (بعد السماح بالتفاعل)
+    try {
+      createEngineSound(secs);
+    } catch(e){
+      // لو حصل خطأ في الصوت ما يمنع الانترُو نفسه
+      console.warn('Engine audio error:', e);
+    }
+
+    // fallback لو animationend ما اتوقعش
+    const fallback = setTimeout(endIntro, (secs + 0.6) * 1000);
+    // نهاية الانيميشن بنستخدم setTimeout لأن CSS animation قد لا تبث حدث في بعض الحالات
+    // بس لو حبينا نضيف event listener لحدوث: نبحث عن انتهاء الحركة على .car-wrap
+    // انتهى: ننهي الانترُو
+    setTimeout(()=>{
+      clearTimeout(fallback);
+      endIntro();
+    }, (secs + 0.05) * 1000);
+  }
+
+  function endIntro(){
+    intro.style.opacity = '0';
+    intro.style.pointerEvents = 'none';
+    intro.addEventListener('transitionend', ()=> { intro.style.display = 'none'; }, { once:true });
+    main.style.opacity = '1';
+  }
+
+  startBtn.addEventListener('click', ()=> beginIntro());
+  skipBtn.addEventListener('click', ()=> {
+    // تخطّي الانترُو فورًا
+    intro.classList.add('playing'); // لو لسة ماشتغلتش
+    endIntro();
+  });
+
+  // لو المستخدم ضغط Enter أو Space على الزر بعد تفعيله
+  startBtn.addEventListener('keydown', (e)=> { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); beginIntro(); } });
+
+})();
+</script>
+</body>
+</html>
